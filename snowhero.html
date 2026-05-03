@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Snow Hero ❄</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --c1: #00c2ff;
+  --c2: #8b00ff;
+  --c3: #ff0080;
+  --c4: #ff8c00;
+  --c5: #00cf55;
+  --dark: #0a0a1a;
+  --dark2: #0f0c29;
+  --dark3: #1a1040;
+  --card: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.55);
+  --success: #00e5a0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--dark);
+  font-family: 'Nunito', sans-serif;
+  color: var(--text);
+  overflow: hidden;
+}
+
+canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+.app {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  max-width: 430px; margin: 0 auto;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* SCREENS */
+.screen { display: none; flex-direction: column; height: 100%; overflow-y: auto; overflow-x: hidden; animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1); }
+.screen.active { display: flex; }
+@keyframes slideUp { from { opacity:0; transform: translateY(30px); } to { opacity:1; transform:translateY(0); } }
+
+/* SCROLLBAR */
+.screen::-webkit-scrollbar { width: 0; }
+
+/* RAINBOW TEXT */
+.rainbow {
+  background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c1));
+  background-size: 300%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: rainbowMove 8s linear infinite;
+}
+@keyframes rainbowMove { from { background-position: 0%; } to { background-position: 300%; } }
+/* Accessibility: respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* RAINBOW BORDER ANIMATION */
+@keyframes rainbowBorder {
+  0% { border-color: var(--c1); }
+  25% { border-color: var(--c2); }
+  50% { border-color: var(--c3); }
+  75% { border-color: var(--c4); }
+  100% { border-color: var(--c1); }
+}
+
+/* BIG BUTTON */
+.btn-rainbow {
+  width: 100%; padding: 1rem 1.5rem;
+  border: none; border-radius: 18px; cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-size: 17px; font-weight: 900;
+  color: white; letter-spacing: 0.3px;
+  background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c1));
+  background-size: 300%; animation: rainbowMove 8s linear infinite;
+  box-shadow: 0 6px 32px rgba(139,0,255,0.45);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-rainbow:active { transform: scale(0.97); box-shadow: 0 3px 16px rgba(139,0,255,0.3); }
+
+.btn-ghost {
+  width: 100%; padding: 0.9rem;
+  background: var(--card); border: 1.5px solid var(--card-border);
+  border-radius: 16px; color: var(--text);
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-ghost:active { background: rgba(255,255,255,0.12); }
+
+/* CARDS */
+.glass-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 20px; padding: 1rem 1.25rem;
+  backdrop-filter: blur(10px);
+}
+
+/* INPUTS */
+.input-wrap { margin-bottom: 1rem; }
+.input-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.input-field {
+  width: 100%; padding: 0.85rem 1rem;
+  background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 14px; color: white;
+  font-family: 'Nunito', sans-serif; font-size: 15px;
+  outline: none; transition: border-color 0.2s;
+}
+.input-field::placeholder { color: var(--muted); }
+.input-field:focus { animation: rainbowBorder 2s linear infinite; }
+
+select.input-field option { background: #1a1040; color: white; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  display: flex; flex-shrink: 0;
+  background: rgba(10,10,26,0.95);
+  border-top: 1px solid var(--card-border);
+  padding: 0.6rem 0 0.9rem;
+  backdrop-filter: blur(20px);
+}
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; }
+.nav-icon { font-size: 22px; }
+.nav-label { font-size: 10px; font-weight: 800; color: var(--muted); transition: color 0.2s; }
+.nav-item.active .nav-label { color: var(--c1); }
+
+/* MODE TOGGLE */
+.mode-toggle {
+  display: flex; background: rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 4px; margin-bottom: 1.5rem;
+}
+.mode-btn {
+  flex: 1; padding: 0.6rem; border-radius: 10px; border: none;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; color: var(--muted); background: transparent;
+}
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  color: white; box-shadow: 0 4px 16px rgba(0,194,255,0.3);
+}
+
+/* ===================== SPLASH ===================== */
+#screen-splash {
+  align-items: center; justify-content: center;
+  background: var(--dark);
+}
+.splash-logo { font-family: 'Pacifico', cursive; font-size: 52px; margin-bottom: 8px; }
+.splash-sub { font-size: 16px; color: var(--muted); margin-bottom: 3rem; font-weight: 600; }
+.splash-btns { width: 100%; padding: 0 2rem; display: flex; flex-direction: column; gap: 12px; }
+
+/* ===================== ROLE SELECT ===================== */
+#screen-role {
+  align-items: center; justify-content: center; padding: 2rem;
+}
+.role-cards { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.role-card {
+  background: var(--card); border: 2px solid var(--card-border);
+  border-radius: 24px; padding: 1.5rem;
+  cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+  display: flex; align-items: center; gap: 1rem;
+}
+.role-card:hover { transform: translateY(-3px); }
+.role-card.customer:hover, .role-card.customer.selected { border-color: var(--c1); }
+.role-card.hero:hover, .role-card.hero.selected { border-color: var(--c3); }
+.role-icon { font-size: 42px; }
+.role-title { font-size: 20px; font-weight: 900; }
+.role-desc { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+/* ===================== HOME - CUSTOMER ===================== */
+#screen-home .home-header {
+  padding: 3.5rem 1.5rem 2rem; position: relative; overflow: hidden;
+  background: linear-gradient(180deg, var(--dark2) 0%, transparent 100%);
+  flex-shrink: 0;
+}
+.home-header .tagline { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.home-header h1 { font-family: 'Pacifico', cursive; font-size: 36px; line-height: 1.15; margin-bottom: 4px; }
+.home-body { flex: 1; padding: 1.25rem; }
+
+.service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+.service-card {
+  background: var(--card); border: 2px solid transparent;
+  border-radius: 18px; padding: 1rem; cursor: pointer;
+  transition: transform 0.2s, border-color 0.3s;
+  position: relative; overflow: hidden;
+}
+.service-card::after {
+  content: ''; position: absolute; inset: 0; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0,194,255,0.08), rgba(139,0,255,0.08));
+  opacity: 0; transition: opacity 0.2s;
+}
+.service-card:hover::after, .service-card.selected::after { opacity: 1; }
+.service-card.selected { border-color: var(--c1); }
+.service-card:hover { transform: translateY(-3px); }
+.service-emoji { font-size: 28px; margin-bottom: 6px; }
+.service-name { font-size: 13px; font-weight: 800; }
+.service-price { font-size: 12px; color: var(--c1); font-weight: 700; margin-top: 2px; }
+
+.section-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+
+.hero-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 0.85rem 1rem;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  transition: transform 0.2s;
+}
+.hero-card:hover { transform: translateX(4px); }
+.avatar {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--c1), var(--c2), var(--c3));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 16px rgba(139,0,255,0.4);
+}
+.avatar.sm { width: 38px; height: 38px; font-size: 16px; }
+.hero-name { font-size: 14px; font-weight: 800; }
+.hero-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.star { color: #fbbf24; }
+.online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 4px; animation: pulse 3s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)} }
+
+/* ===================== BOOKING ===================== */
+#screen-booking .booking-header {
+  padding: 3.5rem 1.5rem 1.5rem; flex-shrink: 0;
+  background: linear-gradient(180deg, var(--dark2) 0%, transparent 100%);
+}
+.back-btn { font-size: 13px; color: var(--muted); cursor: pointer; font-weight: 700; margin-bottom: 0.75rem; display: inline-block; }
+.back-btn:hover { color: white; }
+.booking-body { flex: 1; padding: 1.25rem; }
+
+.price-box {
+  background: linear-gradient(135deg, rgba(0,194,255,0.1), rgba(139,0,255,0.1));
+  border: 1px solid rgba(139,0,255,0.2);
+  border-radius: 16px; padding: 1rem 1.25rem; margin: 1rem 0;
+}
+.price-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.price-row.total { font-size: 16px; font-weight: 900; color: white; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin: 8px 0 0; }
+
+/* ===================== TRACKING ===================== */
+#screen-tracking { background: var(--dark); }
+.track-map {
+  height: 240px; flex-shrink: 0; position: relative; overflow: hidden;
+  background: linear-gradient(180deg, #050515 0%, #0a0535 100%);
+}
+.map-grid-lines {
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,194,255,0.05) 0, rgba(0,194,255,0.05) 1px, transparent 1px, transparent 50px),
+    repeating-linear-gradient(90deg, rgba(0,194,255,0.05) 0, rgba(0,194,255,0.05) 1px, transparent 1px, transparent 50px);
+}
+.map-road { position: absolute; background: rgba(255,255,255,0.08); }
+.map-road.h { left:0;right:0;height:24px;top:50%;transform:translateY(-50%); }
+.map-road.v { top:0;bottom:0;width:24px;left:38%; }
+.map-pin { position: absolute; font-size: 32px; bottom:32px; left:52%; animation: bob 2s ease-in-out infinite; filter: drop-shadow(0 0 12px var(--c3)); }
+@keyframes bob { 0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)} }
+.hero-dot {
+  position: absolute; width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  border: 3px solid white; top:38%; left:18%;
+  animation: moveHero 5s ease-in-out infinite alternate;
+  box-shadow: 0 0 20px var(--c1);
+}
+@keyframes moveHero { from{left:15%;top:42%}to{left:45%;top:28%} }
+.ripple {
+  position: absolute; width: 50px; height: 50px; border-radius: 50%;
+  border: 2px solid var(--c1); top:38%; left:18%;
+  animation: rippleAnim 2s ease-out infinite;
+  transform: translate(-12px, -12px);
+}
+@keyframes rippleAnim { 0%{transform:translate(-12px,-12px) scale(1);opacity:0.8}100%{transform:translate(-12px,-12px) scale(3);opacity:0} }
+
+.track-body { flex:1; padding:1.25rem; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(0,229,160,0.12); border: 1px solid rgba(0,229,160,0.25);
+  color: var(--success); font-size: 13px; font-weight: 800;
+  padding: 6px 14px; border-radius: 20px; margin-bottom: 1.25rem;
+}
+.eta-badge {
+  margin-left: auto; background: linear-gradient(90deg, var(--c1), var(--c2));
+  color: white; font-size: 12px; font-weight: 800;
+  padding: 4px 12px; border-radius: 20px;
+}
+
+/* ===================== HERO DASHBOARD ===================== */
+#screen-hero-home .hero-header {
+  padding: 3.5rem 1.5rem 1.5rem; flex-shrink: 0;
+  background: linear-gradient(180deg, #1a0030 0%, transparent 100%);
+}
+.online-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 18px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+}
+.toggle-switch {
+  width: 52px; height: 28px; border-radius: 14px; border: none; cursor: pointer;
+  position: relative; transition: background 0.3s;
+  background: rgba(255,255,255,0.15);
+}
+.toggle-switch.on { background: linear-gradient(90deg, var(--c1), var(--c2)); }
+.toggle-knob {
+  position: absolute; width: 22px; height: 22px; border-radius: 50%;
+  background: white; top: 3px; left: 3px;
+  transition: transform 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.toggle-switch.on .toggle-knob { transform: translateX(24px); }
+
+.job-alert {
+  background: linear-gradient(135deg, rgba(0,194,255,0.12), rgba(139,0,255,0.12));
+  border: 1.5px solid rgba(0,194,255,0.3);
+  border-radius: 20px; padding: 1.25rem; margin-bottom: 1rem;
+  animation: glow 4s ease-in-out infinite;
+}
+@keyframes glow { 0%,100%{box-shadow:0 0 16px rgba(0,194,255,0.15)}50%{box-shadow:0 0 28px rgba(0,194,255,0.25)} }
+.job-alert-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c1); margin-bottom: 8px; }
+.job-alert-addr { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+.job-alert-meta { font-size: 13px; color: var(--muted); }
+.job-alert-price { font-size: 26px; font-weight: 900; color: var(--success); margin: 8px 0 12px; }
+.job-btns { display: flex; gap: 10px; }
+.btn-accept { flex:1; padding:0.8rem; border-radius:14px; border:none; cursor:pointer; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; color:white; background:linear-gradient(90deg,var(--c5),var(--c1)); box-shadow:0 4px 16px rgba(0,207,85,0.3); }
+.btn-decline { flex:1; padding:0.8rem; border-radius:14px; border:none; cursor:pointer; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; color:white; background:rgba(255,255,255,0.1); }
+
+.earnings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+.earnings-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 1rem; text-align: center; }
+.earnings-num { font-size: 24px; font-weight: 900; }
+.earnings-lbl { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; }
+
+/* ===================== SIGNUP ===================== */
+#screen-signup .signup-header {
+  padding: 3.5rem 1.5rem 1.5rem; flex-shrink: 0;
+  background: linear-gradient(180deg, var(--dark2) 0%, transparent 100%);
+}
+.signup-body { flex:1; padding:1.25rem; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+  color: white; font-size: 14px; font-weight: 800;
+  padding: 10px 24px; border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(139,0,255,0.4);
+  opacity: 0; transition: all 0.3s; z-index: 100; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* STARS BG */
+.stars-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.star-dot { position: absolute; border-radius: 50%; background: white; animation: twinkle 5s ease-in-out infinite alternate; }
+@keyframes twinkle { from{opacity:0.1}to{opacity:0.5} }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="app">
+
+  <!-- SPLASH -->
+  <div class="screen active" id="screen-splash" style="padding:2rem;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div class="splash-logo rainbow">Snow Hero</div>
+      <div class="splash-sub">❄ Shoveling, on demand</div>
+      <div style="font-size:64px;margin-bottom:2rem;animation:bob 2s ease-in-out infinite;">⛄</div>
+    </div>
+    <div class="splash-btns">
+      <button class="btn-rainbow" onclick="goTo('screen-signup')">Get Started</button>
+      <button class="btn-ghost" onclick="quickLogin()">I already have an account</button>
+    </div>
+    <div style="height:2rem;"></div>
+  </div>
+
+  <!-- SIGN UP -->
+  <div class="screen" id="screen-signup">
+    <div class="signup-header">
+      <div class="back-btn" onclick="goTo('screen-splash')">← Back</div>
+      <div style="font-family:'Pacifico',cursive;font-size:28px;" class="rainbow">Join Snow Hero</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px;">Create your free account</div>
+    </div>
+    <div class="signup-body">
+      <div class="input-wrap">
+        <div class="input-label">Your name</div>
+        <input class="input-field" id="signup-name" type="text" placeholder="Alex Johnson...">
+      </div>
+      <div class="input-wrap">
+        <div class="input-label">Email</div>
+        <input class="input-field" id="signup-email" type="email" placeholder="you@email.com">
+      </div>
+      <div class="input-wrap">
+        <div class="input-label">Password</div>
+        <input class="input-field" id="signup-pass" type="password" placeholder="Create a password...">
+      </div>
+      <div style="margin-bottom:1.5rem;">
+        <div class="input-label" style="margin-bottom:10px;">I want to...</div>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="role-customer-btn" onclick="setRole('customer')">🏠 Order shoveling</button>
+          <button class="mode-btn" id="role-hero-btn" onclick="setRole('hero')">🦸 Be a Hero & earn</button>
+        </div>
+      </div>
+      <button class="btn-rainbow" onclick="doSignup()">Create Account ❄</button>
+      <div style="height:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- HOME - CUSTOMER -->
+  <div class="screen" id="screen-home">
+    <div class="home-header">
+      <div class="tagline">Good morning ❄</div>
+      <h1 class="rainbow">Snow Hero</h1>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px;">Need your driveway cleared?</div>
+    </div>
+    <div class="home-body">
+      <button class="btn-rainbow" onclick="goTo('screen-booking')" style="margin-bottom:1.5rem;">❄ Request a Hero now</button>
+
+      <div class="section-label">Choose your service</div>
+      <div class="service-grid" style="margin-bottom:1.5rem;">
+        <div class="service-card selected" onclick="selectService(this,'Small Driveway',15)">
+          <div class="service-emoji">🚗</div>
+          <div class="service-name">Small Driveway</div>
+          <div class="service-price">$15</div>
+        </div>
+        <div class="service-card" onclick="selectService(this,'Large Driveway',30)">
+          <div class="service-emoji">🚐</div>
+          <div class="service-name">Large Driveway</div>
+          <div class="service-price">$30</div>
+        </div>
+        <div class="service-card" onclick="selectService(this,'Walkway Only',10)">
+          <div class="service-emoji">🚶</div>
+          <div class="service-name">Walkway Only</div>
+          <div class="service-price">$10</div>
+        </div>
+        <div class="service-card" onclick="selectService(this,'Full Property',50)">
+          <div class="service-emoji">🏠</div>
+          <div class="service-name">Full Property</div>
+          <div class="service-price">$50</div>
+        </div>
+      </div>
+
+      <div class="section-label">Heroes nearby</div>
+      <div class="hero-card">
+        <div class="avatar">😎</div>
+        <div>
+          <div class="hero-name">Jake T.</div>
+          <div class="hero-meta"><span class="online-dot"></span>0.3 mi · <span class="star">★</span> 4.9 · 47 jobs</div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="avatar" style="background:linear-gradient(135deg,#ff0080,#ff8c00);">🦸</div>
+        <div>
+          <div class="hero-name">Maria S.</div>
+          <div class="hero-meta"><span class="online-dot"></span>0.6 mi · <span class="star">★</span> 5.0 · 82 jobs</div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="avatar" style="background:linear-gradient(135deg,#00cf55,#00c2ff);">🧤</div>
+        <div>
+          <div class="hero-name">Chris M.</div>
+          <div class="hero-meta"><span class="online-dot"></span>0.9 mi · <span class="star">★</span> 4.8 · 23 jobs</div>
+        </div>
+      </div>
+      <div style="height:1rem;"></div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+      <div class="nav-item" onclick="goTo('screen-orders')"><div class="nav-icon">📋</div><div class="nav-label">Orders</div></div>
+      <div class="nav-item" onclick="showToast('Messages coming soon!')"><div class="nav-icon">💬</div><div class="nav-label">Messages</div></div>
+      <div class="nav-item" onclick="goTo('screen-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    </div>
+  </div>
+
+  <!-- BOOKING -->
+  <div class="screen" id="screen-booking">
+    <div class="booking-header">
+      <div class="back-btn" onclick="goTo('screen-home')">← Back</div>
+      <div style="font-family:'Pacifico',cursive;font-size:26px;" class="rainbow">Book a Hero</div>
+    </div>
+    <div class="booking-body">
+      <div class="input-wrap">
+        <div class="input-label">Your address</div>
+        <input class="input-field" id="book-address" type="text" placeholder="123 Main Street...">
+      </div>
+      <div class="input-wrap">
+        <div class="input-label">Service type</div>
+        <select class="input-field" id="book-service" onchange="updatePrice()">
+          <option value="15">Small Driveway — $15</option>
+          <option value="30">Large Driveway — $30</option>
+          <option value="10">Walkway Only — $10</option>
+          <option value="50">Full Property — $50</option>
+        </select>
+      </div>
+      <div class="input-wrap">
+        <div class="input-label">Special instructions</div>
+        <input class="input-field" type="text" placeholder="e.g. Side gate is open...">
+      </div>
+      <div class="price-box">
+        <div class="price-row"><span>Service fee</span><span id="price-base">$15</span></div>
+        <div class="price-row"><span>Platform fee</span><span>$2</span></div>
+        <div class="price-row total"><span>Total</span><span id="price-total">$17</span></div>
+      </div>
+      <button class="btn-rainbow" onclick="confirmBooking()">Confirm & Find My Hero →</button>
+      <div style="height:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- TRACKING -->
+  <div class="screen" id="screen-tracking">
+    <div class="track-map">
+      <div class="stars-bg" id="map-stars"></div>
+      <div class="map-grid-lines"></div>
+      <div class="map-road h"></div>
+      <div class="map-road v"></div>
+      <div class="ripple"></div>
+      <div class="hero-dot"></div>
+      <div class="map-pin">📍</div>
+    </div>
+    <div class="track-body">
+      <div class="status-pill"><span class="online-dot"></span>Hero on the way!</div>
+      <div class="glass-card" style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+        <div class="avatar">😎</div>
+        <div>
+          <div class="hero-name">Jake T.</div>
+          <div class="hero-meta"><span class="star">★</span> 4.9 · Shovel Pro</div>
+        </div>
+        <div class="eta-badge">~8 min</div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:1.5rem;">Jake has accepted your job and is heading to your driveway now. You'll get a notification when he arrives! 🎉</div>
+      <button class="btn-rainbow" style="margin-bottom:10px;" onclick="completeJob()">✓ Mark Job Complete</button>
+      <button class="btn-ghost" onclick="goTo('screen-home')">← Back to Home</button>
+      <div style="height:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="screen" id="screen-orders">
+    <div style="padding:3.5rem 1.5rem 1.5rem;background:linear-gradient(180deg,var(--dark2) 0%,transparent 100%);flex-shrink:0;">
+      <div style="font-family:'Pacifico',cursive;font-size:28px;" class="rainbow">My Orders</div>
+    </div>
+    <div style="flex:1;padding:1.25rem;">
+      <div class="glass-card" style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:14px;font-weight:800;">Small Driveway</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">123 Main St · Today</div>
+          </div>
+          <div style="background:rgba(0,229,160,0.15);color:var(--success);font-size:11px;font-weight:800;padding:4px 10px;border-radius:10px;">Done ✓</div>
+        </div>
+      </div>
+      <div class="glass-card" style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:14px;font-weight:800;">Full Property</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">123 Main St · Yesterday</div>
+          </div>
+          <div style="background:rgba(0,229,160,0.15);color:var(--success);font-size:11px;font-weight:800;padding:4px 10px;border-radius:10px;">Done ✓</div>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin-top:2rem;">That's all your orders!</div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item" onclick="goTo('screen-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+      <div class="nav-item active"><div class="nav-icon">📋</div><div class="nav-label">Orders</div></div>
+      <div class="nav-item" onclick="showToast('Messages coming soon!')"><div class="nav-icon">💬</div><div class="nav-label">Messages</div></div>
+      <div class="nav-item" onclick="goTo('screen-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="screen" id="screen-profile">
+    <div style="padding:3.5rem 1.5rem 1.5rem;background:linear-gradient(180deg,var(--dark2) 0%,transparent 100%);flex-shrink:0;">
+      <div style="font-family:'Pacifico',cursive;font-size:28px;" class="rainbow">My Profile</div>
+    </div>
+    <div style="flex:1;padding:1.25rem;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+        <div class="avatar" style="width:64px;height:64px;font-size:28px;">😎</div>
+        <div>
+          <div id="profile-name" style="font-size:20px;font-weight:900;">Alex</div>
+          <div style="font-size:13px;color:var(--muted);">Snow Hero Customer</div>
+        </div>
+      </div>
+      <div class="glass-card" style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:14px;font-weight:700;">Total jobs ordered</span>
+          <span style="font-weight:900;">2</span>
+        </div>
+      </div>
+      <div class="glass-card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:14px;font-weight:700;">Total spent</span>
+          <span style="font-weight:900;color:var(--c1);">$40</span>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="switchToHero()" style="margin-bottom:10px;">🦸 Switch to Hero mode</button>
+      <button class="btn-ghost" onclick="goTo('screen-splash')" style="color:rgba(255,100,100,0.8);">Log out</button>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item" onclick="goTo('screen-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+      <div class="nav-item" onclick="goTo('screen-orders')"><div class="nav-icon">📋</div><div class="nav-label">Orders</div></div>
+      <div class="nav-item" onclick="showToast('Messages coming soon!')"><div class="nav-icon">💬</div><div class="nav-label">Messages</div></div>
+      <div class="nav-item active"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    </div>
+  </div>
+
+  <!-- HERO DASHBOARD -->
+  <div class="screen" id="screen-hero-home">
+    <div class="hero-header">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Hero Dashboard 🦸</div>
+      <div style="font-family:'Pacifico',cursive;font-size:28px;" class="rainbow">Snow Hero</div>
+    </div>
+    <div style="flex:1;padding:1.25rem;">
+      <div class="online-toggle">
+        <div>
+          <div style="font-size:15px;font-weight:800;" id="online-status-text">You're Offline</div>
+          <div style="font-size:12px;color:var(--muted);">Toggle to start getting jobs</div>
+        </div>
+        <button class="toggle-switch" id="online-toggle" onclick="toggleOnline()">
+          <div class="toggle-knob"></div>
+        </button>
+      </div>
+
+      <div class="earnings-grid">
+        <div class="earnings-card">
+          <div class="earnings-num rainbow">$0</div>
+          <div class="earnings-lbl">Today's earnings</div>
+        </div>
+        <div class="earnings-card">
+          <div class="earnings-num">0</div>
+          <div class="earnings-lbl">Jobs today</div>
+        </div>
+      </div>
+
+      <div id="job-alert-wrap" style="display:none;">
+        <div class="job-alert">
+          <div class="job-alert-title">🚨 New job nearby!</div>
+          <div class="job-alert-addr">123 Main Street</div>
+          <div class="job-alert-meta">Small Driveway · 0.3 mi away</div>
+          <div class="job-alert-price">$15 <span style="font-size:13px;color:var(--muted);font-weight:600;">you earn</span></div>
+          <div class="job-btns">
+            <button class="btn-accept" onclick="acceptJob()">✓ Accept</button>
+            <button class="btn-decline" onclick="declineJob()">✗ Decline</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="no-jobs-msg">
+        <div style="text-align:center;padding:2rem 0;color:var(--muted);">
+          <div style="font-size:48px;margin-bottom:1rem;">❄</div>
+          <div style="font-size:14px;font-weight:700;">Go online to start receiving jobs!</div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+      <div class="nav-item" onclick="showToast('Job history coming soon!')"><div class="nav-icon">📋</div><div class="nav-label">Jobs</div></div>
+      <div class="nav-item" onclick="showToast('Messages coming soon!')"><div class="nav-icon">💬</div><div class="nav-label">Messages</div></div>
+      <div class="nav-item" onclick="goTo('screen-hero-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    </div>
+  </div>
+
+  <!-- HERO PROFILE -->
+  <div class="screen" id="screen-hero-profile">
+    <div style="padding:3.5rem 1.5rem 1.5rem;background:linear-gradient(180deg,#1a0030 0%,transparent 100%);flex-shrink:0;">
+      <div style="font-family:'Pacifico',cursive;font-size:28px;" class="rainbow">Hero Profile</div>
+    </div>
+    <div style="flex:1;padding:1.25rem;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+        <div class="avatar" style="width:64px;height:64px;font-size:28px;background:linear-gradient(135deg,#ff0080,#8b00ff);">🦸</div>
+        <div>
+          <div id="hero-profile-name" style="font-size:20px;font-weight:900;">Hero</div>
+          <div style="font-size:13px;color:var(--success);">⭐ Snow Hero</div>
+        </div>
+      </div>
+      <div class="earnings-grid" style="margin-bottom:1rem;">
+        <div class="earnings-card">
+          <div class="earnings-num rainbow">$0</div>
+          <div class="earnings-lbl">Total earned</div>
+        </div>
+        <div class="earnings-card">
+          <div class="earnings-num">0</div>
+          <div class="earnings-lbl">Total jobs</div>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="goTo('screen-hero-home')" style="margin-bottom:10px;">← Back to Dashboard</button>
+      <button class="btn-ghost" onclick="goTo('screen-home')" style="margin-bottom:10px;">🏠 Switch to Customer mode</button>
+      <button class="btn-ghost" onclick="goTo('screen-splash')" style="color:rgba(255,100,100,0.8);">Log out</button>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item" onclick="goTo('screen-hero-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+      <div class="nav-item" onclick="showToast('Job history coming soon!')"><div class="nav-icon">📋</div><div class="nav-label">Jobs</div></div>
+      <div class="nav-item" onclick="showToast('Messages coming soon!')"><div class="nav-icon">💬</div><div class="nav-label">Messages</div></div>
+      <div class="nav-item active"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- STATE ----
+let selectedService = 'Small Driveway';
+let selectedPrice = 15;
+let userRole = 'customer';
+let userName = 'Alex';
+let isOnline = false;
+
+// ---- NAVIGATION ----
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ---- SIGNUP ----
+function setRole(role) {
+  userRole = role;
+  document.getElementById('role-customer-btn').classList.toggle('active', role === 'customer');
+  document.getElementById('role-hero-btn').classList.toggle('active', role === 'hero');
+}
+
+function doSignup() {
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass = document.getElementById('signup-pass').value.trim();
+  if (!name || !email || !pass) { showToast('Please fill in all fields!'); return; }
+  userName = name.split(' ')[0];
+  document.getElementById('profile-name').textContent = userName;
+  document.getElementById('hero-profile-name').textContent = userName;
+  if (userRole === 'hero') {
+    goTo('screen-hero-home');
+  } else {
+    goTo('screen-home');
+  }
+  showToast('Welcome to Snow Hero, ' + userName + '! ❄');
+}
+
+function quickLogin() {
+  userName = 'Alex';
+  goTo('screen-home');
+}
+
+// ---- SERVICE SELECTION ----
+function selectService(el, name, price) {
+  document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedService = name;
+  selectedPrice = price;
+  document.getElementById('book-service').value = price;
+  updatePrice();
+}
+
+function updatePrice() {
+  const base = parseInt(document.getElementById('book-service').value);
+  document.getElementById('price-base').textContent = '$' + base;
+  document.getElementById('price-total').textContent = '$' + (base + 2);
+}
+
+// ---- BOOKING ----
+function confirmBooking() {
+  const addr = document.getElementById('book-address').value.trim();
+  if (!addr) { showToast('Please enter your address!'); return; }
+  goTo('screen-tracking');
+  showToast('Hero found! Jake is on his way 🎉');
+}
+
+function completeJob() {
+  goTo('screen-home');
+  showToast('Job complete! ⭐ Please rate your Hero');
+}
+
+// ---- HERO MODE ----
+function toggleOnline() {
+  isOnline = !isOnline;
+  const toggle = document.getElementById('online-toggle');
+  const statusText = document.getElementById('online-status-text');
+  toggle.classList.toggle('on', isOnline);
+  statusText.textContent = isOnline ? "You're Online 🟢" : "You're Offline";
+  if (isOnline) {
+    showToast('You\'re online! Looking for jobs... ❄');
+    setTimeout(() => {
+      document.getElementById('job-alert-wrap').style.display = 'block';
+      document.getElementById('no-jobs-msg').style.display = 'none';
+      showToast('🚨 New job nearby!');
+    }, 3000);
+  } else {
+    document.getElementById('job-alert-wrap').style.display = 'none';
+    document.getElementById('no-jobs-msg').style.display = 'block';
+  }
+}
+
+function acceptJob() {
+  document.getElementById('job-alert-wrap').style.display = 'none';
+  showToast('Job accepted! Head to 123 Main Street 🚗');
+}
+
+function declineJob() {
+  document.getElementById('job-alert-wrap').style.display = 'none';
+  showToast('Job declined. Looking for more...');
+}
+
+function switchToHero() {
+  goTo('screen-hero-home');
+  showToast('Switched to Hero mode! 🦸');
+}
+
+// ---- TOAST ----
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ---- BUBBLES BACKGROUND ----
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const colors = ['#ff0080','#ff8c00','#ffe000','#00cf55','#00c2ff','#8b00ff','#ff69b4','#00ffcc'];
+const bubbles = Array.from({length:15}, () => ({
+  x: Math.random() * window.innerWidth,
+  y: Math.random() * window.innerHeight,
+  r: 20 + Math.random() * 55,
+  color: colors[Math.floor(Math.random()*colors.length)],
+  dx: (Math.random()-0.5)*0.3,
+  dy: -(0.1 + Math.random()*0.25),
+  alpha: 0.08 + Math.random()*0.12,
+}));
+
+function drawBubbles() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = b.alpha;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(b.x - b.r*0.3, b.y - b.r*0.3, b.r*0.15, 0, Math.PI*2);
+    ctx.fillStyle = 'white';
+    ctx.globalAlpha = b.alpha * 0.5;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    b.x += b.dx; b.y += b.dy;
+    if (b.y + b.r < 0) { b.y = canvas.height + b.r; b.x = Math.random()*canvas.width; }
+    if (b.x + b.r < 0) b.x = canvas.width + b.r;
+    if (b.x - b.r > canvas.width) b.x = -b.r;
+  });
+  requestAnimationFrame(drawBubbles);
+}
+drawBubbles();
+
+// Map stars
+const mapStars = document.getElementById('map-stars');
+for (let i=0;i<30;i++) {
+  const s = document.createElement('div');
+  s.className = 'star-dot';
+  const sz = 1+Math.random()*2;
+  s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*2}s`;
+  mapStars.appendChild(s);
+}
+</script>
+</body>
+</html>
