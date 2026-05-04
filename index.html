@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Snow Hero ❄</title>
 <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --c1: #00c2ff;
@@ -368,9 +369,32 @@ select.input-field option { background: #1a1040; color: white; }
     </div>
     <div class="splash-btns">
       <button class="btn-rainbow" onclick="goTo('screen-signup')">Get Started</button>
-      <button class="btn-ghost" onclick="quickLogin()">I already have an account</button>
+      <button class="btn-ghost" onclick="goTo('screen-login')">Log In</button>
     </div>
     <div style="height:2rem;"></div>
+  </div>
+
+
+  <!-- LOGIN -->
+  <div class="screen" id="screen-login">
+    <div class="signup-header">
+      <div class="back-btn" onclick="goTo('screen-splash')">← Back</div>
+      <div style="font-family:'Pacifico',cursive;font-size:28px;" class="rainbow">Welcome Back</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px;">Log in to your account</div>
+    </div>
+    <div class="signup-body">
+      <div class="input-wrap">
+        <div class="input-label">Email</div>
+        <input class="input-field" id="login-email" type="email" placeholder="you@email.com">
+      </div>
+      <div class="input-wrap">
+        <div class="input-label">Password</div>
+        <input class="input-field" id="login-pass" type="password" placeholder="Your password...">
+      </div>
+      <button class="btn-rainbow" onclick="doLogin()" style="margin-top:0.5rem;">Log In ❄</button>
+      <div style="height:1rem;"></div>
+      <div style="text-align:center;font-size:13px;color:var(--muted);">Don't have an account? <span style="color:var(--c1);font-weight:800;cursor:pointer;" onclick="goTo('screen-signup')">Sign up</span></div>
+    </div>
   </div>
 
   <!-- SIGN UP -->
@@ -700,12 +724,35 @@ select.input-field option { background: #1a1040; color: white; }
 <div class="toast" id="toast"></div>
 
 <script>
+// ---- SUPABASE ----
+const SUPABASE_URL = 'https://kaibxizvwobtpiigbazg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_IVZ7fpZg_9VrppEXkkTqeQ_dgPLUDLH';
+const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ---- STATE ----
 let selectedService = 'Small Driveway';
 let selectedPrice = 15;
 let userRole = 'customer';
 let userName = 'Alex';
 let isOnline = false;
+let currentUser = null;
+
+// Check session on load
+window.addEventListener('load', async () => {
+  const { data: { session } } = await _supa.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    userName = (session.user.user_metadata?.full_name || session.user.email).split(/[ @]/)[0];
+    userRole = session.user.user_metadata?.role || 'customer';
+    updateProfileNames();
+    goTo(userRole === 'hero' ? 'screen-hero-home' : 'screen-home');
+  }
+});
+
+function updateProfileNames() {
+  document.getElementById('profile-name').textContent = userName;
+  document.getElementById('hero-profile-name').textContent = userName;
+}
 
 // ---- NAVIGATION ----
 function goTo(id) {
@@ -714,32 +761,51 @@ function goTo(id) {
   window.scrollTo(0,0);
 }
 
-// ---- SIGNUP ----
+// ---- SIGNUP / LOGIN ----
 function setRole(role) {
   userRole = role;
   document.getElementById('role-customer-btn').classList.toggle('active', role === 'customer');
   document.getElementById('role-hero-btn').classList.toggle('active', role === 'hero');
 }
 
-function doSignup() {
+async function doSignup() {
   const name = document.getElementById('signup-name').value.trim();
   const email = document.getElementById('signup-email').value.trim();
   const pass = document.getElementById('signup-pass').value.trim();
   if (!name || !email || !pass) { showToast('Please fill in all fields!'); return; }
+  showToast('Creating your account... ⏳');
+  const { data, error } = await _supa.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, role: userRole } }
+  });
+  if (error) { showToast('Error: ' + error.message); return; }
+  currentUser = data.user;
   userName = name.split(' ')[0];
-  document.getElementById('profile-name').textContent = userName;
-  document.getElementById('hero-profile-name').textContent = userName;
-  if (userRole === 'hero') {
-    goTo('screen-hero-home');
-  } else {
-    goTo('screen-home');
-  }
+  updateProfileNames();
   showToast('Welcome to Snow Hero, ' + userName + '! ❄');
+  goTo(userRole === 'hero' ? 'screen-hero-home' : 'screen-home');
 }
 
-function quickLogin() {
-  userName = 'Alex';
-  goTo('screen-home');
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  if (!email || !pass) { showToast('Please fill in all fields!'); return; }
+  showToast('Logging in... ⏳');
+  const { data, error } = await _supa.auth.signInWithPassword({ email, password: pass });
+  if (error) { showToast('Wrong email or password!'); return; }
+  currentUser = data.user;
+  userName = (data.user.user_metadata?.full_name || data.user.email).split(/[ @]/)[0];
+  userRole = data.user.user_metadata?.role || 'customer';
+  updateProfileNames();
+  showToast('Welcome back, ' + userName + '! ❄');
+  goTo(userRole === 'hero' ? 'screen-hero-home' : 'screen-home');
+}
+
+async function doLogout() {
+  await _supa.auth.signOut();
+  currentUser = null;
+  goTo('screen-splash');
+  showToast('Logged out! See you next storm ❄');
 }
 
 // ---- SERVICE SELECTION ----
@@ -779,7 +845,7 @@ function toggleOnline() {
   toggle.classList.toggle('on', isOnline);
   statusText.textContent = isOnline ? "You're Online 🟢" : "You're Offline";
   if (isOnline) {
-    showToast('You\'re online! Looking for jobs... ❄');
+    showToast("You're online! Looking for jobs... ❄");
     setTimeout(() => {
       document.getElementById('job-alert-wrap').style.display = 'block';
       document.getElementById('no-jobs-msg').style.display = 'none';
